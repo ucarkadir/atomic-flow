@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum RuleType {
+  SINGLE_METRIC
+  DOUBLE_METRIC
+  CHECKBOX_ASSISTED
+}
+
+model User {
+  id             String      @id @default(uuid())
+  supabaseUserId String      @unique
+  createdAt      DateTime    @default(now())
+  habits         Habit[]
+  entries        DailyEntry[]
+}
+
+model Habit {
+  id                      String          @id @default(uuid())
+  userId                  String
+  user                    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  habitName               String
+  identityStatement       String
+  implementationIntention String
+  habitStacking           String
+  trackingStacking        String
+  weeklyTargetText        String
+  ruleType                RuleType
+  ruleJson                Json
+  createdAt               DateTime        @default(now())
+  entries                 DailyEntry[]
+  schedules               HabitSchedule[]
+
+  @@index([userId, createdAt])
+}
+
+model DailyEntry {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  habitId     String
+  habit       Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  date        DateTime
+  minutes     Int?
+  pages       Int?
+  outputCount Int?
+  didOutput   Boolean?
+  score       Int
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, habitId, date])
+  @@index([userId, date])
+}
+
+model HabitSchedule {
+  id        String  @id @default(uuid())
+  habitId   String
+  habit     Habit   @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  weekday   Int
+  isPlanned Boolean @default(true)
+
+  @@unique([habitId, weekday])
+  @@index([habitId, weekday])
+}
