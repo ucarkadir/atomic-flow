@@ -30,7 +30,7 @@ export default function MonthlyPage() {
     <main>
       <Card>
         <CardHeader>
-          <CardTitle>Aylık Özet</CardTitle>
+          <CardTitle>Aylik Ozet</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="max-w-xs">
@@ -39,7 +39,7 @@ export default function MonthlyPage() {
           </div>
 
           <div className="rounded border bg-white p-4">
-            <p className="text-sm text-muted-foreground">Aylık yüzde (haftalık geneller ortalaması)</p>
+            <p className="text-sm text-muted-foreground">Aylik yuzde (haftalik geneller ortalamasi)</p>
             <p className="text-2xl font-semibold">%{monthlyPercent.toFixed(1)}</p>
           </div>
 
@@ -48,7 +48,7 @@ export default function MonthlyPage() {
               <thead>
                 <tr className="bg-secondary">
                   <th className="border p-2 text-left">Hafta</th>
-                  <th className="border p-2 text-left">Aralık</th>
+                  <th className="border p-2 text-left">Aralik</th>
                   <th className="border p-2 text-right">Genel %</th>
                 </tr>
               </thead>

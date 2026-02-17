@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { habitId, date, minutes, pages, outputCount, didOutput, notes } = body;
+  const { habitId, date, metric1Value, metric2Value, completed, notes } = body;
 
   if (!habitId || !date) {
     return NextResponse.json({ error: "habitId ve date zorunlu" }, { status: 400 });
@@ -19,19 +19,22 @@ export async function POST(request: Request) {
 
   const habit = await prisma.habit.findFirst({
     where: { id: habitId, userId: appUser.id },
-    select: { id: true, ruleJson: true }
+    select: { id: true, ruleJson: true, invertScore: true }
   });
 
   if (!habit) {
     return NextResponse.json({ error: "Habit bulunamadi" }, { status: 404 });
   }
 
-  const score = calculateScore(habit.ruleJson, {
-    minutes: toNullableInt(minutes),
-    pages: toNullableInt(pages),
-    outputCount: toNullableInt(outputCount),
-    didOutput: typeof didOutput === "boolean" ? didOutput : null
-  });
+  const scoreResult = calculateScore(
+    habit.ruleJson,
+    {
+      metric1Value: toNullableNumber(metric1Value),
+      metric2Value: toNullableNumber(metric2Value),
+      completed: typeof completed === "boolean" ? completed : null
+    },
+    habit.invertScore
+  );
 
   const entry = await prisma.dailyEntry.upsert({
     where: {
@@ -45,30 +48,33 @@ export async function POST(request: Request) {
       userId: appUser.id,
       habitId,
       date: normalizeDate(date),
-      minutes: toNullableInt(minutes),
-      pages: toNullableInt(pages),
-      outputCount: toNullableInt(outputCount),
-      didOutput: typeof didOutput === "boolean" ? didOutput : null,
+      metric1Value: toNullableNumber(metric1Value),
+      metric2Value: toNullableNumber(metric2Value),
+      completed: typeof completed === "boolean" ? completed : null,
       notes: notes || null,
-      score
+      score: scoreResult.score
     },
     update: {
-      minutes: toNullableInt(minutes),
-      pages: toNullableInt(pages),
-      outputCount: toNullableInt(outputCount),
-      didOutput: typeof didOutput === "boolean" ? didOutput : null,
+      metric1Value: toNullableNumber(metric1Value),
+      metric2Value: toNullableNumber(metric2Value),
+      completed: typeof completed === "boolean" ? completed : null,
       notes: notes || null,
-      score
+      score: scoreResult.score
     }
   });
 
-  return NextResponse.json(entry);
+  return NextResponse.json({ ...entry, usedMissingHandling: scoreResult.usedMissingHandling });
 }
 
-function toNullableInt(value: unknown) {
+function toNullableNumber(value: unknown) {
   if (value === null || value === undefined || value === "") {
     return null;
   }
+
   const num = Number(value);
-  return Number.isFinite(num) ? Math.max(0, Math.round(num)) : null;
+  if (!Number.isFinite(num)) {
+    return null;
+  }
+
+  return Math.max(0, num);
 }

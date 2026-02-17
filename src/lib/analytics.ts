@@ -1,8 +1,11 @@
 import { addDays } from "date-fns";
+import { scoreForMissingEntry } from "@/lib/score-engine";
 
 export type HabitLite = {
   id: string;
   habitName: string;
+  invertScore: boolean;
+  ruleJson: unknown;
   schedules: Array<{ weekday: number; isPlanned: boolean }>;
 };
 
@@ -16,7 +19,7 @@ export type EntryLite = {
 export type WeeklyHabitRow = {
   habitId: string;
   habitName: string;
-  days: Array<{ date: string; score: number | null; planned: boolean }>;
+  days: Array<{ date: string; score: number | null; planned: boolean; source: "entry" | "missing" | "na" }>;
   filledDays: number;
   totalScore: number;
   average: number;
@@ -46,14 +49,32 @@ export function buildWeeklySummary(
     const dayCells = days.map((day) => {
       const weekday = day.getUTCDay();
       const planned = scheduleMap.size === 0 ? true : (scheduleMap.get(weekday) ?? false);
-      const entry = entries.find(
-        (e) => e.habitId === habit.id && sameUtcDate(e.date, day)
-      );
+      const entry = entries.find((e) => e.habitId === habit.id && sameUtcDate(e.date, day));
 
+      if (!planned) {
+        return {
+          date: day.toISOString().slice(0, 10),
+          score: null,
+          planned,
+          source: "na" as const
+        };
+      }
+
+      if (entry) {
+        return {
+          date: day.toISOString().slice(0, 10),
+          score: entry.score,
+          planned,
+          source: "entry" as const
+        };
+      }
+
+      const fallbackScore = scoreForMissingEntry(habit.ruleJson, habit.invertScore);
       return {
         date: day.toISOString().slice(0, 10),
-        score: entry?.score ?? null,
-        planned
+        score: fallbackScore,
+        planned,
+        source: fallbackScore === null ? ("na" as const) : ("missing" as const)
       };
     });
 

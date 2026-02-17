@@ -1,53 +1,7 @@
-import { PrismaClient, RuleType } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
+import { presetRules } from "../src/lib/score-engine";
 
 const prisma = new PrismaClient();
-
-type Condition = {
-  metric: "minutes" | "pages" | "outputCount" | "didOutput";
-  op: "gte" | "eq";
-  value: number | boolean;
-};
-
-type RuleJson = {
-  levels: Array<{ score: number; any: Array<{ all: Condition[] }> }>;
-};
-
-const singleMetricRule = (
-  metric: "minutes" | "pages" | "outputCount",
-  thresholds: Array<[number, number]>
-): RuleJson => ({
-  levels: thresholds.map(([score, min]) => ({
-    score,
-    any: [{ all: [{ metric, op: "gte", value: min }] }]
-  }))
-});
-
-const englishRule: RuleJson = {
-  levels: [
-    {
-      score: 5,
-      any: [
-        { all: [{ metric: "minutes", op: "gte", value: 45 }] },
-        {
-          all: [
-            { metric: "minutes", op: "gte", value: 30 },
-            { metric: "outputCount", op: "gte", value: 10 }
-          ]
-        },
-        {
-          all: [
-            { metric: "minutes", op: "gte", value: 30 },
-            { metric: "didOutput", op: "eq", value: true }
-          ]
-        }
-      ]
-    },
-    { score: 4, any: [{ all: [{ metric: "minutes", op: "gte", value: 30 }] }] },
-    { score: 3, any: [{ all: [{ metric: "minutes", op: "gte", value: 15 }] }] },
-    { score: 2, any: [{ all: [{ metric: "minutes", op: "gte", value: 2 }] }] },
-    { score: 1, any: [{ all: [] }] }
-  ]
-};
 
 async function main() {
   const supabaseUserId = process.env.SEED_SUPABASE_USER_ID;
@@ -79,14 +33,13 @@ async function main() {
         habitStacking: "Cay koyduktan sonra 20 sayfa okurum",
         trackingStacking: "Okuma biter bitmez skoru girerim",
         weeklyTargetText: "Haftada 5 gun 20+ sayfa",
-        ruleType: RuleType.SINGLE_METRIC,
-        ruleJson: singleMetricRule("pages", [
-          [5, 35],
-          [4, 28],
-          [3, 20],
-          [2, 10],
-          [1, 0]
-        ])
+        metric1Label: "Sayfa",
+        metric1Unit: "syf",
+        metric2Label: null,
+        metric2Unit: null,
+        supportsCompletedOnly: false,
+        invertScore: false,
+        ruleJson: presetRules.readingPages
       },
       {
         userId: user.id,
@@ -96,8 +49,13 @@ async function main() {
         habitStacking: "Kahveden sonra 30+ dakika Ingilizce",
         trackingStacking: "Dersi bitirince girdi olustururum",
         weeklyTargetText: "Haftada 6 gun",
-        ruleType: RuleType.DOUBLE_METRIC,
-        ruleJson: englishRule
+        metric1Label: "Dakika",
+        metric1Unit: "dk",
+        metric2Label: "Cumle",
+        metric2Unit: "adet",
+        supportsCompletedOnly: false,
+        invertScore: false,
+        ruleJson: presetRules.englishDouble
       }
     ]
   });

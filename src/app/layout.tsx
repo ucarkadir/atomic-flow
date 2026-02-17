@@ -11,7 +11,8 @@ const navItems = [
   { href: "/setup", label: "Setup" },
   { href: "/daily", label: "Daily" },
   { href: "/weekly", label: "Weekly" },
-  { href: "/monthly", label: "Monthly" }
+  { href: "/monthly", label: "Monthly" },
+  { href: "/help", label: "Help" }
 ];
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

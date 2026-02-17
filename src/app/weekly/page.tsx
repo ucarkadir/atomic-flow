@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { addDays, format, startOfWeek } from "date-fns";
+import { format, startOfWeek } from "date-fns";
 import { tr } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -11,7 +11,7 @@ type WeeklyResponse = {
   rows: Array<{
     habitId: string;
     habitName: string;
-    days: Array<{ date: string; score: number | null; planned: boolean }>;
+    days: Array<{ date: string; score: number | null; planned: boolean; source: "entry" | "missing" | "na" }>;
     filledDays: number;
     totalScore: number;
     average: number;
@@ -20,7 +20,7 @@ type WeeklyResponse = {
   overall: { filledDays: number; totalScore: number; average: number; percent: number };
 };
 
-const dayHeaders = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cts", "Paz"];
+const dayHeaders = ["Pzt", "Sal", "Car", "Per", "Cum", "Cts", "Paz"];
 
 export default function WeeklyPage() {
   const defaultMonday = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
@@ -46,11 +46,11 @@ export default function WeeklyPage() {
     <main>
       <Card>
         <CardHeader>
-          <CardTitle>Haftalık Skor Tablosu</CardTitle>
+          <CardTitle>Haftalik Skor Tablosu</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 overflow-x-auto">
           <div className="max-w-xs">
-            <label className="mb-1 block text-sm">Hafta başlangıcı (Pazartesi)</label>
+            <label className="mb-1 block text-sm">Hafta baslangici (Pazartesi)</label>
             <input type="date" value={weekStart} onChange={(e) => setWeekStart(e.target.value)} />
           </div>
           {title ? <p className="text-sm text-muted-foreground">{title}</p> : null}
@@ -58,7 +58,7 @@ export default function WeeklyPage() {
           <table className="min-w-[920px] border-collapse text-sm">
             <thead>
               <tr className="bg-secondary">
-                <th className="border p-2 text-left">Alışkanlık</th>
+                <th className="border p-2 text-left">Aliskanlik</th>
                 {dayHeaders.map((day) => (
                   <th key={day} className="border p-2">
                     {day}
@@ -76,7 +76,7 @@ export default function WeeklyPage() {
                   <td className="border p-2 font-medium">{row.habitName}</td>
                   {row.days.map((day) => (
                     <td key={`${row.habitId}-${day.date}`} className="border p-2 text-center">
-                      {day.score ?? (day.planned ? "-" : "N/A")}
+                      {typeof day.score === "number" ? day.score : "N/A"}
                     </td>
                   ))}
                   <td className="border p-2 text-center">{row.filledDays}</td>
@@ -89,7 +89,7 @@ export default function WeeklyPage() {
                 <tr className="bg-secondary font-medium">
                   <td className="border p-2">Genel</td>
                   {Array.from({ length: 7 }).map((_, i) => (
-                    <td key={addDays(new Date(`${data.weekStart}T00:00:00`), i).toISOString()} className="border p-2 text-center">
+                    <td key={i} className="border p-2 text-center">
                       -
                     </td>
                   ))}

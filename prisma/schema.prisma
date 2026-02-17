@@ -8,12 +8,6 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-enum RuleType {
-  SINGLE_METRIC
-  DOUBLE_METRIC
-  CHECKBOX_ASSISTED
-}
-
 model User {
   id             String      @id @default(uuid())
   supabaseUserId String      @unique
@@ -32,7 +26,12 @@ model Habit {
   habitStacking           String
   trackingStacking        String
   weeklyTargetText        String
-  ruleType                RuleType
+  metric1Label            String          @default("")
+  metric1Unit             String          @default("")
+  metric2Label            String?
+  metric2Unit             String?
+  supportsCompletedOnly   Boolean         @default(false)
+  invertScore             Boolean         @default(false)
   ruleJson                Json
   createdAt               DateTime        @default(now())
   entries                 DailyEntry[]
@@ -42,20 +41,19 @@ model Habit {
 }
 
 model DailyEntry {
-  id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  habitId     String
-  habit       Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
-  date        DateTime
-  minutes     Int?
-  pages       Int?
-  outputCount Int?
-  didOutput   Boolean?
-  score       Int
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  habitId      String
+  habit        Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  date         DateTime
+  metric1Value Float?
+  metric2Value Float?
+  completed    Boolean?
+  notes        String?
+  score        Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@unique([userId, habitId, date])
   @@index([userId, date])

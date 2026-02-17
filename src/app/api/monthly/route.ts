@@ -21,6 +21,8 @@ export async function GET(request: Request) {
     select: {
       id: true,
       habitName: true,
+      invertScore: true,
+      ruleJson: true,
       schedules: { select: { weekday: true, isPlanned: true } }
     },
     orderBy: { createdAt: "asc" }

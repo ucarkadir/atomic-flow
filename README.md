@@ -1,28 +1,35 @@
 # Atomic Flow
 
-Next.js (App Router) + TypeScript + Tailwind + shadcn/ui + Supabase Auth + Supabase Postgres + Prisma + Vercel iskeleti.
+Next.js (App Router) + TypeScript + Tailwind + shadcn/ui + Supabase Auth + Supabase Postgres + Prisma ile esnek metrikli aliskanlik takip uygulamasi.
 
-## Özellikler
+## Ozellikler
 
 - Supabase Auth (email + password)
-- Prisma ile Supabase Postgres veri modeli
-- Server-side skor hesaplama motoru (`ruleJson`)
-- Setup / Daily / Weekly / Monthly ekranları
-- API route'ları:
-  - `POST /api/entries`
-  - `GET /api/weekly?weekStart=YYYY-MM-DD`
-  - `GET /api/monthly?month=YYYY-MM`
-  - `POST /api/seed`
-- Planlı gün desteği (`HabitSchedule`)
+- Prisma + Supabase Postgres
+- Dinamik metrik modeli (habit basi 0..2 metrik)
+- Dinamik ruleJson score engine (single/double/completed)
+- Operatorler: `or`, `and`, `gte`, `lte`, `eq`, `between`
+- `missingHandling`: `NA` veya `SCORE_1..SCORE_5`
+- Negatif aliskanliklar icin `invertScore`
+- Planli gun (`HabitSchedule`) + N/A davranisi
+- Ekranlar: `/setup`, `/daily`, `/weekly`, `/monthly`, `/help`
 
-## 1) Kurulum (Local)
+## API
+
+- `POST /api/entries` -> daily entry upsert + score hesaplama
+- `GET /api/weekly?weekStart=YYYY-MM-DD`
+- `GET /api/monthly?month=YYYY-MM`
+- `POST /api/seed`
+- `GET /api/habits/:id/rule`
+
+## Kurulum (Local)
 
 ```bash
-pnpm install
+corepack pnpm install
 cp .env.example .env
 ```
 
-`.env` içine doldurun:
+`.env`:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=
@@ -35,65 +42,60 @@ DIRECT_URL=
 Prisma:
 
 ```bash
-pnpm db:generate
-pnpm db:migrate --name init
+corepack pnpm db:generate
+corepack pnpm db:deploy
 ```
 
-Opsiyonel local seed (tek kullanıcıya):
+Gelistirme:
 
 ```bash
-SEED_SUPABASE_USER_ID=<supabase-user-uuid> pnpm db:seed
+corepack pnpm dev
 ```
 
-Çalıştır:
+Test/Lint/Build:
 
 ```bash
-pnpm dev
+corepack pnpm test
+corepack pnpm lint
+corepack pnpm build
 ```
 
-## 2) Supabase Adımları
+## Supabase Kurulumu
 
-1. Supabase'de yeni project açın.
-2. `Authentication -> Providers -> Email` açık olsun.
-3. `Project Settings -> API` altından:
-   - `URL` -> `NEXT_PUBLIC_SUPABASE_URL`
-   - `anon key` -> `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `service_role key` -> `SUPABASE_SERVICE_ROLE_KEY`
-4. `Project Settings -> Database` altından connection stringleri alın:
-   - Transaction/Pooled -> `DATABASE_URL`
-   - Direct -> `DIRECT_URL`
-5. İlk migration'ı localden çalıştırıp tabloyu oluşturun.
+1. Supabase project olustur.
+2. `Authentication -> Providers -> Email` acik olsun.
+3. `Settings -> Data API`:
+   - `Project URL` -> `NEXT_PUBLIC_SUPABASE_URL`
+   - `Anon key` -> `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `service_role` -> `SUPABASE_SERVICE_ROLE_KEY`
+4. `Settings -> Database -> Connection string`:
+   - pooled/transaction uri -> `DATABASE_URL`
+   - direct uri -> `DIRECT_URL`
 
-## 3) Vercel Deploy (Free Tier)
+## Vercel Deploy (GitHub Auto Deploy)
 
-1. Kodu GitHub'a push edin.
-2. Vercel'de `Add New -> Project` ile repo import edin.
-3. Framework: Next.js otomatik algılanır.
-4. `Environment Variables` alanına `.env` değişkenlerini ekleyin.
-5. Deploy edin.
+1. Repo'yu GitHub'a push et.
+2. Vercel `Add New -> Project` ile import et.
+3. Environment variables olarak `.env` degiskenlerini gir.
+4. Deploy et.
 
-GitHub entegrasyonu sonrası:
+Sonrasinda:
 
-- `main` branch push -> Production deploy
-- Pull Request -> Preview deploy
+- `main` push -> Production deploy
+- PR -> Preview deploy
 
-## 4) Kullanım Akışı
+## Seed
 
-1. `/login` üzerinden kayıt/giriş.
-2. `/setup`:
-   - Kendi alışkanlıklarınızı ekleyin veya `Örnek alışkanlıklar` butonuyla 5 hazır alışkanlığı ekleyin.
-   - Preset kural seçin.
-   - Gerekirse planlı gün seçin.
-3. `/daily`:
-   - Tarih seçin, metrikleri girin, kaydedin.
-   - Skor otomatik hesaplanır.
-4. `/weekly`:
-   - Pzt-Paz tablo görünümü, satır bazlı toplam/ortalama/% ve genel satır.
-5. `/monthly`:
-   - Haftalık genel yüzdeler + aylık ortalama yüzde.
+Uygulamada `/setup` sayfasindaki `Ornek aliskanliklar` butonu ile 5 varsayilan aliskanligi ekleyebilirsin.
 
-## 5) Önemli Notlar
+## Help Sayfasi
 
-- RLS yerine uygulama seviyesinde `userId` scope uygulanır.
-- Prisma client singleton kullanılır (`src/lib/prisma.ts`) ve serverless ortama uygundur.
-- Kural motoru tamamen server-side çalışır (`src/lib/score-engine.ts` + `POST /api/entries`).
+`/help` sayfasi su konulari aciklar:
+
+- Metric1 / Metric2 / Completed / Notes
+- Skor hesaplama (single/double/completed)
+- Invert score
+- Haftalik yuzde formulu (`filledDays`, `sum`, `avg`, `percent`)
+- Planli gun ve N/A
+
+`/daily` kartlarindaki "Bu aliskanlik nasil hesaplanir?" linki `GET /api/habits/:id/rule` ile ruleJson detayini gosterir.
